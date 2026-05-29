@@ -1,10 +1,12 @@
 import { RawShortTermRentalListing } from "@/src/types/ingestion";
 
+const MAX_DESCRIPTION_LENGTH = 1000;
+
 export function normalizeRawListing(raw: RawShortTermRentalListing): RawShortTermRentalListing {
   return {
     ...raw,
     title: raw.title.trim(),
-    description: raw.description.trim().slice(0, 1000),
+    description: raw.description.trim().slice(0, MAX_DESCRIPTION_LENGTH),
     currency: raw.currency.toUpperCase(),
     countryCode: raw.countryCode.toUpperCase(),
     maxGuests: Math.max(1, Math.round(raw.maxGuests)),

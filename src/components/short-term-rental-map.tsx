@@ -61,6 +61,10 @@ interface CesiumNamespace {
 }
 
 const PLATFORM_OPTIONS = ["all", "CityOpenData", "AnalyticsProvider", "Airbnb", "Booking", "VRBO"];
+const CESIUM_VERSION = "1.120";
+const UI_TEXT = {
+  visibleListings: "annunci visibili",
+};
 
 function appendCesiumAssets() {
   if (document.getElementById("cesium-script")) {
@@ -69,12 +73,12 @@ function appendCesiumAssets() {
 
   const link = document.createElement("link");
   link.rel = "stylesheet";
-  link.href = "https://unpkg.com/cesium@1.120/Build/Cesium/Widgets/widgets.css";
+  link.href = `https://unpkg.com/cesium@${CESIUM_VERSION}/Build/Cesium/Widgets/widgets.css`;
   document.head.appendChild(link);
 
   const script = document.createElement("script");
   script.id = "cesium-script";
-  script.src = "https://unpkg.com/cesium@1.120/Build/Cesium/Cesium.js";
+  script.src = `https://unpkg.com/cesium@${CESIUM_VERSION}/Build/Cesium/Cesium.js`;
   script.async = true;
   document.body.appendChild(script);
 }
@@ -240,7 +244,7 @@ export function ShortTermRentalMap() {
     }
   }, [listings]);
 
-  const listingCountText = useMemo(() => `${listings.length} annunci visibili`, [listings.length]);
+  const listingCountText = useMemo(() => `${listings.length} ${UI_TEXT.visibleListings}`, [listings.length]);
 
   return (
     <div className="relative h-[calc(100vh-4rem)] w-full bg-zinc-950">

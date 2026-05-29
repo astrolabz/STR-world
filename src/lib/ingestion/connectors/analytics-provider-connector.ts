@@ -34,7 +34,7 @@ export class AnalyticsProviderConnector implements ShortTermRentalConnector {
       return [
         {
           title: "Mock analytics listing",
-          description: "Listing dimostrativo da provider analytics mock",
+          description: "Mock listing from analytics provider",
           nightlyPrice: 120,
           currency: "EUR",
           platform: "AnalyticsProvider",

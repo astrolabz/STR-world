@@ -3,6 +3,9 @@ import { randomUUID } from "node:crypto";
 import { getDbPool } from "@/src/lib/db/client";
 import { ListingsQueryFilters, ShortTermRentalListing } from "@/src/types/listings";
 
+const MAX_LISTINGS_LIMIT = 500;
+const DEFAULT_LISTINGS_LIMIT = 250;
+
 interface UpsertListingInput {
   title: string;
   description: string;
@@ -163,7 +166,10 @@ export async function getListingsByBbox(filters: ListingsQueryFilters) {
     conditions.push(`platform = ANY($${values.length}::text[])`);
   }
 
-  const limit = filters.limit && filters.limit > 0 ? Math.min(filters.limit, 500) : 250;
+  const limit =
+    filters.limit && filters.limit > 0
+      ? Math.min(filters.limit, MAX_LISTINGS_LIMIT)
+      : DEFAULT_LISTINGS_LIMIT;
   const offset = filters.offset && filters.offset >= 0 ? filters.offset : 0;
   values.push(limit, offset);
 

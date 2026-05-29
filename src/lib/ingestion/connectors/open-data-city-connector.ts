@@ -55,7 +55,7 @@ export class OpenDataCityConnector implements ShortTermRentalConnector {
 
         return {
           title: record.name || "Short-term rental listing",
-          description: (record.description || "Annuncio importato da open-data pubblico").slice(0, 500),
+          description: (record.description || "Public open-data imported listing").slice(0, 500),
           nightlyPrice,
           currency: "EUR",
           platform: "CityOpenData",
