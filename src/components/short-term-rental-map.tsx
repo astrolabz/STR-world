@@ -127,7 +127,24 @@ export function ShortTermRentalMap() {
     }
 
     const payload = (await response.json()) as { data: ShortTermRentalListing[] };
-    setListings(payload.data ?? []);
+    const query = searchText.trim().toLowerCase();
+    const filtered = (payload.data ?? []).filter((listing) => {
+      const inBbox =
+        listing.latitude >= bbox.minLat &&
+        listing.latitude <= bbox.maxLat &&
+        listing.longitude >= bbox.minLng &&
+        listing.longitude <= bbox.maxLng;
+      const inPrice = listing.nightlyPrice >= priceRange[0] && listing.nightlyPrice <= priceRange[1];
+      const inRating = (listing.rating ?? 0) >= minRating;
+      const inPlatform = platform === "all" || listing.platform === platform;
+      const inQuery =
+        !query ||
+        `${listing.title} ${listing.city} ${listing.countryCode}`.toLowerCase().includes(query);
+
+      return inBbox && inPrice && inRating && inPlatform && inQuery;
+    });
+
+    setListings(filtered);
   }, [bbox, minRating, platform, priceRange, searchText]);
 
   useEffect(() => {

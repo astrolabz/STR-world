@@ -98,9 +98,10 @@ curl -X POST http://localhost:3000/api/cron/ingest \
 ## Endpoint backend
 
 - `GET /api/listings` con BBOX obbligatorio e filtri opzionali
-- `GET /api/listings/{id}` dettaglio annuncio
 - `GET /api/ingestion-jobs` log base ingestione
 - `POST /api/cron/ingest` endpoint protetto per eseguire il runner
+
+Se `DATABASE_URL` non è configurata (es. deploy statico su GitHub Pages), `GET /api/listings` restituisce un dataset demo statico per mantenere l’interfaccia funzionante.
 
 ## Note legali importanti
 
