@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ListingDetailsSheet } from "@/src/components/listing-details-sheet";
@@ -95,6 +96,8 @@ export function ShortTermRentalMap() {
   const [platform, setPlatform] = useState("all");
   const [minRating, setMinRating] = useState<number>(0);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 2000]);
+
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
   const fetchListings = useCallback(async () => {
     if (!bbox) {
@@ -265,49 +268,61 @@ export function ShortTermRentalMap() {
 
   return (
     <div className="relative h-[calc(100vh-4rem)] w-full bg-zinc-950">
-      <div className="absolute left-4 right-4 top-4 z-20 rounded-xl border border-zinc-200 bg-white/95 p-3 shadow">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
-          <Input
-            placeholder="Cerca città o paese"
-            value={searchText}
-            onChange={(event) => setSearchText(event.target.value)}
-          />
-          <div className="md:col-span-2 space-y-2">
-            <p className="text-xs font-medium text-zinc-600">Range prezzo per notte</p>
-            <Slider
-              value={priceRange}
-              min={0}
-              max={2000}
-              step={10}
-              onValueChange={(value) => setPriceRange([value[0] ?? 0, value[1] ?? 2000])}
+      <div className="absolute left-4 top-4 z-20 w-72 rounded-xl border border-zinc-200 bg-white/95 shadow">
+        <button
+          onClick={() => setIsFiltersOpen((prev) => !prev)}
+          className="flex w-full items-center justify-between px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 rounded-xl"
+        >
+          <span className="flex items-center gap-1.5">
+            <SlidersHorizontal className="h-4 w-4" />
+            Filtri · {listingCountText}
+          </span>
+          {isFiltersOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </button>
+
+        {isFiltersOpen && (
+          <div className="border-t border-zinc-100 p-3 space-y-3">
+            <Input
+              placeholder="Cerca città o paese"
+              value={searchText}
+              onChange={(event) => setSearchText(event.target.value)}
             />
-            <p className="text-xs text-zinc-500">
-              {priceRange[0]} - {priceRange[1]} EUR
-            </p>
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-zinc-600">Range prezzo per notte</p>
+              <Slider
+                value={priceRange}
+                min={0}
+                max={2000}
+                step={10}
+                onValueChange={(value) => setPriceRange([value[0] ?? 0, value[1] ?? 2000])}
+              />
+              <p className="text-xs text-zinc-500">
+                {priceRange[0]} – {priceRange[1]} EUR
+              </p>
+            </div>
+            <Input
+              type="number"
+              min={0}
+              max={5}
+              step={0.1}
+              value={minRating}
+              onChange={(event) => setMinRating(Number(event.target.value || 0))}
+              placeholder="Rating minimo"
+            />
+            <Select value={platform} onValueChange={setPlatform}>
+              <SelectTrigger>
+                <SelectValue placeholder="Piattaforma" />
+              </SelectTrigger>
+              <SelectContent>
+                {PLATFORM_OPTIONS.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <Input
-            type="number"
-            min={0}
-            max={5}
-            step={0.1}
-            value={minRating}
-            onChange={(event) => setMinRating(Number(event.target.value || 0))}
-            placeholder="Rating minimo"
-          />
-          <Select value={platform} onValueChange={setPlatform}>
-            <SelectTrigger>
-              <SelectValue placeholder="Piattaforma" />
-            </SelectTrigger>
-            <SelectContent>
-              {PLATFORM_OPTIONS.map((option) => (
-                <SelectItem key={option} value={option}>
-                  {option}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <p className="mt-2 text-xs text-zinc-600">{listingCountText}</p>
+        )}
       </div>
 
       <div ref={containerRef} className="h-full w-full" />
