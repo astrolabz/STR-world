@@ -166,6 +166,10 @@ export async function getListingsByBbox(filters: ListingsQueryFilters) {
     conditions.push(`platform = ANY($${values.length}::text[])`);
   }
 
+  if (filters.propertyType) {
+    addCondition("property_type = ?", filters.propertyType);
+  }
+
   const limit =
     filters.limit && filters.limit > 0
       ? Math.min(filters.limit, MAX_LISTINGS_LIMIT)
@@ -252,6 +256,99 @@ export async function markIngestionJobFailed(id: string, errorMessage: string) {
     `,
     [id, errorMessage],
   );
+}
+
+export interface ListingsStats {
+  totalCount: number;
+  avgNightlyPrice: number;
+  minNightlyPrice: number;
+  maxNightlyPrice: number;
+  avgRating: number;
+  byPropertyType: { propertyType: string; count: number }[];
+  byPlatform: { platform: string; count: number }[];
+  topCities: { city: string; countryCode: string; count: number }[];
+}
+
+export async function getListingsStats(bbox: {
+  minLat: number;
+  maxLat: number;
+  minLng: number;
+  maxLng: number;
+}): Promise<ListingsStats> {
+  const dbPool = getDbPool();
+  const bboxValues = [bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat];
+  const bboxCondition = `ST_Intersects(location_point, ST_MakeEnvelope($1, $2, $3, $4, 4326))`;
+
+  const [aggregateResult, byPropertyTypeResult, byPlatformResult, topCitiesResult] = await Promise.all([
+    dbPool.query(
+      `
+        SELECT
+          COUNT(*)::int AS total_count,
+          COALESCE(AVG(nightly_price), 0)::numeric(10,2) AS avg_nightly_price,
+          COALESCE(MIN(nightly_price), 0)::numeric(10,2) AS min_nightly_price,
+          COALESCE(MAX(nightly_price), 0)::numeric(10,2) AS max_nightly_price,
+          COALESCE(AVG(rating), 0)::numeric(3,2) AS avg_rating
+        FROM short_term_rental_listings
+        WHERE ${bboxCondition}
+      `,
+      bboxValues,
+    ),
+    dbPool.query(
+      `
+        SELECT property_type, COUNT(*)::int AS count
+        FROM short_term_rental_listings
+        WHERE ${bboxCondition}
+        GROUP BY property_type
+        ORDER BY count DESC
+        LIMIT 10
+      `,
+      bboxValues,
+    ),
+    dbPool.query(
+      `
+        SELECT platform, COUNT(*)::int AS count
+        FROM short_term_rental_listings
+        WHERE ${bboxCondition}
+        GROUP BY platform
+        ORDER BY count DESC
+      `,
+      bboxValues,
+    ),
+    dbPool.query(
+      `
+        SELECT city, country_code, COUNT(*)::int AS count
+        FROM short_term_rental_listings
+        WHERE ${bboxCondition}
+        GROUP BY city, country_code
+        ORDER BY count DESC
+        LIMIT 10
+      `,
+      bboxValues,
+    ),
+  ]);
+
+  const agg = aggregateResult.rows[0] ?? {};
+
+  return {
+    totalCount: Number(agg.total_count ?? 0),
+    avgNightlyPrice: Number(agg.avg_nightly_price ?? 0),
+    minNightlyPrice: Number(agg.min_nightly_price ?? 0),
+    maxNightlyPrice: Number(agg.max_nightly_price ?? 0),
+    avgRating: Number(agg.avg_rating ?? 0),
+    byPropertyType: byPropertyTypeResult.rows.map((row) => ({
+      propertyType: String(row.property_type),
+      count: Number(row.count),
+    })),
+    byPlatform: byPlatformResult.rows.map((row) => ({
+      platform: String(row.platform),
+      count: Number(row.count),
+    })),
+    topCities: topCitiesResult.rows.map((row) => ({
+      city: String(row.city),
+      countryCode: String(row.country_code),
+      count: Number(row.count),
+    })),
+  };
 }
 
 export async function getIngestionJobs(limit = 50) {

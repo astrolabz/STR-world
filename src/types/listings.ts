@@ -55,6 +55,7 @@ export interface ListingsQueryFilters {
   maxGuests?: number;
   countryCode?: string;
   platform?: string[];
+  propertyType?: string;
   queryText?: string;
   limit?: number;
   offset?: number;

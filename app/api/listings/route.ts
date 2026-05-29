@@ -50,6 +50,7 @@ export async function GET(request: NextRequest) {
       maxGuests: parseNumber(searchParams.get("maxGuests"), "maxGuests") ?? undefined,
       countryCode: searchParams.get("countryCode") ?? undefined,
       platform: platformValues.length ? [...new Set(platformValues)] : undefined,
+      propertyType: searchParams.get("propertyType") ?? undefined,
       queryText: searchParams.get("q") ?? undefined,
       limit: parseNumber(searchParams.get("limit"), "limit") ?? undefined,
       offset: parseNumber(searchParams.get("offset"), "offset") ?? undefined,

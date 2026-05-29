@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ListingDetailsSheet } from "@/src/components/listing-details-sheet";
+import { StatsOverlay } from "@/src/components/stats-overlay";
 import { Input } from "@/src/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/src/components/ui/select";
 import { Slider } from "@/src/components/ui/slider";
@@ -61,6 +62,7 @@ interface CesiumNamespace {
 }
 
 const PLATFORM_OPTIONS = ["all", "CityOpenData", "AnalyticsProvider", "Airbnb", "Booking", "VRBO"];
+const PROPERTY_TYPE_OPTIONS = ["all", "entire_home", "private_room", "shared_room", "hotel_room"];
 const CESIUM_VERSION = "1.120";
 const UI_TEXT = {
   visibleListings: "annunci visibili",
@@ -95,6 +97,7 @@ export function ShortTermRentalMap() {
   const [platform, setPlatform] = useState("all");
   const [minRating, setMinRating] = useState<number>(0);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 2000]);
+  const [propertyType, setPropertyType] = useState("all");
 
   const fetchListings = useCallback(async () => {
     if (!bbox) {
@@ -120,6 +123,10 @@ export function ShortTermRentalMap() {
       searchParams.set("q", searchText.trim());
     }
 
+    if (propertyType !== "all") {
+      searchParams.append("propertyType", propertyType);
+    }
+
     const response = await fetch(`/api/listings?${searchParams.toString()}`);
 
     if (!response.ok) {
@@ -128,7 +135,7 @@ export function ShortTermRentalMap() {
 
     const payload = (await response.json()) as { data: ShortTermRentalListing[] };
     setListings(payload.data ?? []);
-  }, [bbox, minRating, platform, priceRange, searchText]);
+  }, [bbox, minRating, platform, priceRange, propertyType, searchText]);
 
   useEffect(() => {
     listingsRef.current = listings;
@@ -249,7 +256,7 @@ export function ShortTermRentalMap() {
   return (
     <div className="relative h-[calc(100vh-4rem)] w-full bg-zinc-950">
       <div className="absolute left-4 right-4 top-4 z-20 rounded-xl border border-zinc-200 bg-white/95 p-3 shadow">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
           <Input
             placeholder="Cerca città o paese"
             value={searchText}
@@ -289,11 +296,25 @@ export function ShortTermRentalMap() {
               ))}
             </SelectContent>
           </Select>
+          <Select value={propertyType} onValueChange={setPropertyType}>
+            <SelectTrigger>
+              <SelectValue placeholder="Tipo proprietà" />
+            </SelectTrigger>
+            <SelectContent>
+              {PROPERTY_TYPE_OPTIONS.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option === "all" ? "Tutti i tipi" : option.replace(/_/g, " ")}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <p className="mt-2 text-xs text-zinc-600">{listingCountText}</p>
       </div>
 
       <div ref={containerRef} className="h-full w-full" />
+
+      <StatsOverlay bbox={bbox} />
 
       <ListingDetailsSheet listing={selectedListing} open={isSheetOpen} onOpenChange={setIsSheetOpen} />
     </div>
