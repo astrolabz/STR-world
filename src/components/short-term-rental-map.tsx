@@ -72,6 +72,8 @@ function appendCesiumAssets() {
     return;
   }
 
+  window.CESIUM_BASE_URL = `https://unpkg.com/cesium@${CESIUM_VERSION}/Build/Cesium/`;
+
   const link = document.createElement("link");
   link.rel = "stylesheet";
   link.href = `https://unpkg.com/cesium@${CESIUM_VERSION}/Build/Cesium/Widgets/widgets.css`;
@@ -123,7 +125,9 @@ export function ShortTermRentalMap() {
       searchParams.set("q", searchText.trim());
     }
 
-    const response = await fetch(`/api/listings?${searchParams.toString()}`);
+    const nextData = window.__NEXT_DATA__ as { assetPrefix?: string } | undefined;
+    const basePath = nextData?.assetPrefix?.replace(/\/$/, "") ?? "";
+    const response = await fetch(`${basePath}/api/listings?${searchParams.toString()}`);
 
     if (!response.ok) {
       return;
