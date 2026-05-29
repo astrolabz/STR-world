@@ -67,6 +67,20 @@ npm run dev
 
 Apri `http://localhost:3000`.
 
+## Deploy automatico su GitHub Pages
+
+Il repository include una GitHub Action (`.github/workflows/deploy-pages.yml`) che pubblica automaticamente su GitHub Pages a ogni push su `main`.
+
+Per abilitarlo:
+
+1. Vai in **Settings > Pages** del repository.
+2. In **Build and deployment**, seleziona **Source: GitHub Actions**.
+3. Esegui un push su `main` (oppure lancia manualmente il workflow da tab Actions).
+
+L’app verrà esportata in modalità statica e pubblicata su:
+- `https://<owner>.github.io/<repo>/` per repository project pages (es. `https://astrolabz.github.io/STR-world/`)
+- `https://<owner>.github.io/` per repository `<owner>.github.io`
+
 ## Ingestion job
 
 ### Esecuzione manuale via API
