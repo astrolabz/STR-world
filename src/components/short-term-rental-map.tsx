@@ -125,7 +125,8 @@ export function ShortTermRentalMap() {
       searchParams.set("q", searchText.trim());
     }
 
-    const response = await fetch(`api/listings?${searchParams.toString()}`);
+    const basePath = window.location.pathname.replace(/\/$/, "");
+    const response = await fetch(`${basePath}/api/listings?${searchParams.toString()}`);
 
     if (!response.ok) {
       return;
