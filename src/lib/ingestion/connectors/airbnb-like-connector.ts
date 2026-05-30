@@ -1,12 +1,19 @@
+import { fetchExternalListingsAdapter } from "@/src/lib/ingestion/connectors/external-listings-adapter";
 import { FetchListingsParams, RawShortTermRentalListing, ShortTermRentalConnector } from "@/src/types/ingestion";
 
 export class AirbnbLikeConnector implements ShortTermRentalConnector {
   public readonly name = "AirbnbLikeConnector";
 
+  private readonly endpoint = process.env.AIRBNB_SCRAPER_API_URL;
+  private readonly apiKey = process.env.AIRBNB_SCRAPER_API_KEY;
+
   async fetchListings(params: FetchListingsParams): Promise<RawShortTermRentalListing[]> {
-    void params;
-    // TODO: Integrare solo API ufficiali Airbnb o provider autorizzati, evitando scraping diretto HTML.
-    // TODO: Inserire qui endpoint ufficiale Airbnb, chiave API e mapping campi quando disponibili.
-    return [];
+    return fetchExternalListingsAdapter({
+      endpoint: this.endpoint,
+      apiKey: this.apiKey,
+      fallbackPlatform: "Airbnb",
+      provider: this.name,
+      filters: params,
+    });
   }
 }
