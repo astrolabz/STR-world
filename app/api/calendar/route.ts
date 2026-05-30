@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { buildListingAvailabilityCalendar } from "@/src/lib/availability/ical";
+import { buildListingAvailabilityCalendar } from "@/src/lib/availability/calendar";
+
+export const dynamic = "force-static";
 
 export async function GET(request: NextRequest) {
   if (!process.env.DATABASE_URL) {
-    return NextResponse.json({ error: "DATABASE_URL is required" }, { status: 503 });
+    return new NextResponse("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//STR World//EN\r\nEND:VCALENDAR\r\n", {
+      status: 200,
+      headers: {
+        "Content-Type": "text/calendar; charset=utf-8",
+        "Content-Disposition": 'inline; filename="str-world-availability.ics"',
+      },
+    });
   }
 
   const platform = request.nextUrl.searchParams.get("platform");

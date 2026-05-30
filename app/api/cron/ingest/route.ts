@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { syncConfiguredCalendarFeeds } from "@/src/lib/availability/ical";
+import { syncConfiguredCalendarFeeds } from "@/src/lib/availability/sync";
 import { getDefaultConnectors } from "@/src/lib/ingestion/default-connectors";
 import { IngestionRunner } from "@/src/lib/ingestion/runner";
 

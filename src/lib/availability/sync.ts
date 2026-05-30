@@ -1,14 +1,7 @@
 import { createHash } from "node:crypto";
 
-import ical from "ical-generator";
-import nodeIcal from "node-ical";
-
 import { getConfiguredIcalSyncFeeds } from "@/src/lib/availability/config";
-import {
-  getAvailabilityBlocksForListing,
-  getListingBySource,
-  replaceAvailabilityBlocksForFeed,
-} from "@/src/lib/db/queries";
+import { replaceAvailabilityBlocksForFeed } from "@/src/lib/db/queries";
 import { ICalSyncFeedConfig, ListingAvailabilityBlockInput } from "@/src/types/availability";
 
 function toDate(value: Date | null | undefined) {
@@ -19,8 +12,25 @@ function buildSourceEventId(uid: string | undefined, startsAt: Date) {
   return `${uid ?? "event"}:${startsAt.toISOString()}`;
 }
 
+function extractSummary(summary: unknown) {
+  if (typeof summary === "string") {
+    return summary.trim() || undefined;
+  }
+
+  if (
+    summary &&
+    typeof summary === "object" &&
+    "val" in summary &&
+    typeof summary.val === "string"
+  ) {
+    return summary.val.trim() || undefined;
+  }
+
+  return undefined;
+}
+
 function normalizeEventBlock(
-  event: { uid?: string; summary?: string; start?: Date; end?: Date },
+  event: { uid?: string; summary?: unknown; start?: Date; end?: Date },
   isAllDay: boolean,
 ): ListingAvailabilityBlockInput | null {
   const startsAt = toDate(event.start);
@@ -39,7 +49,7 @@ function normalizeEventBlock(
 
   return {
     sourceEventId: buildSourceEventId(event.uid, startsAt),
-    summary: event.summary?.trim() || undefined,
+    summary: extractSummary(event.summary),
     startsAt,
     endsAt,
     isAllDay,
@@ -51,6 +61,7 @@ function hashFeedUrl(url: string) {
 }
 
 async function fetchAvailabilityBlocks(feed: ICalSyncFeedConfig) {
+  const { default: nodeIcal } = await import("node-ical");
   const calendar = await nodeIcal.async.fromURL(feed.url);
   const blocks: ListingAvailabilityBlockInput[] = [];
 
@@ -59,7 +70,10 @@ async function fetchAvailabilityBlocks(feed: ICalSyncFeedConfig) {
       continue;
     }
 
-    const block = normalizeEventBlock(component, Boolean(component.start?.dateOnly));
+    const block = normalizeEventBlock(
+      component,
+      Boolean((component.start as Date & { dateOnly?: boolean } | undefined)?.dateOnly),
+    );
 
     if (block) {
       blocks.push(block);
@@ -95,42 +109,5 @@ export async function syncConfiguredCalendarFeeds() {
     configuredFeeds: feeds.length,
     syncedFeeds: results.length,
     results,
-  };
-}
-
-export async function buildListingAvailabilityCalendar(listingPlatform: string, sourceListingId: string) {
-  const [listing, blocks] = await Promise.all([
-    getListingBySource(listingPlatform, sourceListingId),
-    getAvailabilityBlocksForListing(listingPlatform, sourceListingId),
-  ]);
-
-  const calendarName =
-    listing?.title ||
-    `Availability ${listingPlatform} ${sourceListingId}`;
-
-  const calendar = ical({
-    name: calendarName,
-    prodId: {
-      company: "STR World",
-      product: "STR World",
-      language: "EN",
-    },
-  });
-
-  for (const block of blocks) {
-    calendar.createEvent({
-      id: block.sourceEventId,
-      start: new Date(block.startsAt),
-      end: new Date(block.endsAt),
-      allDay: block.isAllDay,
-      summary: block.summary || `Blocked on ${block.feedProvider}`,
-      description: `Synced from ${block.feedProvider} by STR World`,
-    });
-  }
-
-  return {
-    calendarName,
-    content: calendar.toString(),
-    hasBlocks: blocks.length > 0,
   };
 }

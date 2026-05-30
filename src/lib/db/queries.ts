@@ -6,6 +6,7 @@ import { ListingsQueryFilters, ShortTermRentalListing } from "@/src/types/listin
 
 const MAX_LISTINGS_LIMIT = 500;
 const DEFAULT_LISTINGS_LIMIT = 250;
+const AVAILABILITY_BLOCK_INSERT_PARAM_COUNT = 11;
 
 interface UpsertListingInput {
   title: string;
@@ -348,7 +349,7 @@ export async function replaceAvailabilityBlocksForFeed(input: ReplaceAvailabilit
     if (input.blocks.length > 0) {
       const values: unknown[] = [];
       const placeholders = input.blocks.map((block, index) => {
-        const offset = index * 11;
+        const offset = index * AVAILABILITY_BLOCK_INSERT_PARAM_COUNT;
         values.push(
           randomUUID(),
           input.listingPlatform,
