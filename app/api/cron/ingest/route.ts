@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { syncConfiguredCalendarFeeds } from "@/src/lib/availability/sync";
 import { getDefaultConnectors } from "@/src/lib/ingestion/default-connectors";
 import { IngestionRunner } from "@/src/lib/ingestion/runner";
 
@@ -26,5 +27,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result, { status: 500 });
   }
 
-  return NextResponse.json(result);
+  const calendarSync = await syncConfiguredCalendarFeeds();
+
+  return NextResponse.json({
+    ...result,
+    calendarSync,
+  });
 }

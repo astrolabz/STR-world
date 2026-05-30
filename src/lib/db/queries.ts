@@ -1,10 +1,12 @@
 import { randomUUID } from "node:crypto";
 
 import { getDbPool } from "@/src/lib/db/client";
+import { ListingAvailabilityBlock, ListingAvailabilityBlockInput } from "@/src/types/availability";
 import { ListingsQueryFilters, ShortTermRentalListing } from "@/src/types/listings";
 
 const MAX_LISTINGS_LIMIT = 500;
 const DEFAULT_LISTINGS_LIMIT = 250;
+const AVAILABILITY_BLOCK_INSERT_PARAM_COUNT = 11;
 
 interface UpsertListingInput {
   title: string;
@@ -27,6 +29,14 @@ interface UpsertListingInput {
   sourceListingId: string;
   provider: string;
   lastSeenAt: Date;
+}
+
+interface ReplaceAvailabilityBlocksForFeedInput {
+  listingPlatform: string;
+  sourceListingId: string;
+  feedProvider: string;
+  feedUrlHash: string;
+  blocks: ListingAvailabilityBlockInput[];
 }
 
 function mapRow(row: Record<string, unknown>): ShortTermRentalListing {
@@ -52,6 +62,24 @@ function mapRow(row: Record<string, unknown>): ShortTermRentalListing {
     sourceListingId: String(row.source_listing_id),
     provider: String(row.provider),
     lastSeenAt: String(row.last_seen_at),
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  };
+}
+
+function mapAvailabilityRow(row: Record<string, unknown>): ListingAvailabilityBlock {
+  return {
+    id: String(row.id),
+    listingPlatform: String(row.listing_platform),
+    sourceListingId: String(row.source_listing_id),
+    feedProvider: String(row.feed_provider),
+    feedUrlHash: String(row.feed_url_hash),
+    sourceEventId: String(row.source_event_id),
+    summary: row.summary ? String(row.summary) : null,
+    startsAt: String(row.starts_at),
+    endsAt: String(row.ends_at),
+    isAllDay: Boolean(row.is_all_day),
+    lastSyncedAt: String(row.last_synced_at),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
@@ -215,6 +243,29 @@ export async function getListingById(id: string) {
   return mapRow(result.rows[0]);
 }
 
+export async function getListingBySource(platform: string, sourceListingId: string) {
+  const dbPool = getDbPool();
+  const result = await dbPool.query(
+    `
+      SELECT
+        id, title, description, nightly_price, currency, platform, rating, review_count,
+        max_guests, bedrooms, bathrooms, property_type, latitude, longitude,
+        address, city, country_code, original_url, source_listing_id, provider,
+        last_seen_at, created_at, updated_at
+      FROM short_term_rental_listings
+      WHERE platform = $1 AND source_listing_id = $2
+      LIMIT 1
+    `,
+    [platform, sourceListingId],
+  );
+
+  if (!result.rows[0]) {
+    return null;
+  }
+
+  return mapRow(result.rows[0]);
+}
+
 export async function createIngestionJob(source: string) {
   const dbPool = getDbPool();
   const id = randomUUID();
@@ -275,4 +326,83 @@ export async function getIngestionJobs(limit = 50) {
     errorMessage: row.error_message ? String(row.error_message) : null,
     createdAt: String(row.created_at),
   }));
+}
+
+export async function replaceAvailabilityBlocksForFeed(input: ReplaceAvailabilityBlocksForFeedInput) {
+  const dbPool = getDbPool();
+  const client = await dbPool.connect();
+  const syncedAt = new Date();
+
+  try {
+    await client.query("BEGIN");
+    await client.query(
+      `
+        DELETE FROM listing_availability_blocks
+        WHERE listing_platform = $1
+          AND source_listing_id = $2
+          AND feed_provider = $3
+          AND feed_url_hash = $4
+      `,
+      [input.listingPlatform, input.sourceListingId, input.feedProvider, input.feedUrlHash],
+    );
+
+    if (input.blocks.length > 0) {
+      const values: unknown[] = [];
+      const placeholders = input.blocks.map((block, index) => {
+        const offset = index * AVAILABILITY_BLOCK_INSERT_PARAM_COUNT;
+        values.push(
+          randomUUID(),
+          input.listingPlatform,
+          input.sourceListingId,
+          input.feedProvider,
+          input.feedUrlHash,
+          block.sourceEventId,
+          block.summary ?? null,
+          block.startsAt,
+          block.endsAt,
+          block.isAllDay,
+          syncedAt,
+        );
+
+        return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10}, $${offset + 11}, NOW(), NOW())`;
+      });
+
+      await client.query(
+        `
+          INSERT INTO listing_availability_blocks (
+            id, listing_platform, source_listing_id, feed_provider, feed_url_hash,
+            source_event_id, summary, starts_at, ends_at, is_all_day, last_synced_at,
+            created_at, updated_at
+          ) VALUES ${placeholders.join(",")}
+        `,
+        values,
+      );
+    }
+
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function getAvailabilityBlocksForListing(listingPlatform: string, sourceListingId: string) {
+  const dbPool = getDbPool();
+  const result = await dbPool.query(
+    `
+      SELECT
+        id, listing_platform, source_listing_id, feed_provider, feed_url_hash,
+        source_event_id, summary, starts_at, ends_at, is_all_day, last_synced_at,
+        created_at, updated_at
+      FROM listing_availability_blocks
+      WHERE listing_platform = $1
+        AND source_listing_id = $2
+      ORDER BY starts_at ASC
+    `,
+    [listingPlatform, sourceListingId],
+  );
+
+  return result.rows.map(mapAvailabilityRow);
 }

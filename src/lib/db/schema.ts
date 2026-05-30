@@ -1,4 +1,5 @@
 import {
+  boolean,
   doublePrecision,
   integer,
   numeric,
@@ -53,4 +54,20 @@ export const ingestionJobsTable = pgTable("ingestion_jobs", {
   finishedAt: timestamp("finished_at", { withTimezone: true }),
   errorMessage: text("error_message"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+});
+
+export const listingAvailabilityBlocksTable = pgTable("listing_availability_blocks", {
+  id: uuid("id").primaryKey(),
+  listingPlatform: text("listing_platform").notNull(),
+  sourceListingId: text("source_listing_id").notNull(),
+  feedProvider: text("feed_provider").notNull(),
+  feedUrlHash: text("feed_url_hash").notNull(),
+  sourceEventId: text("source_event_id").notNull(),
+  summary: text("summary"),
+  startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+  endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+  isAllDay: boolean("is_all_day").notNull(),
+  lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
 });
