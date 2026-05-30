@@ -110,6 +110,7 @@ La stessa esecuzione sincronizza anche gli eventuali feed iCal configurati in `I
 - `GET /api/calendar?platform=<platform>&sourceListingId=<id>` esporta un feed `.ics` con i blocchi sincronizzati
 
 Se `DATABASE_URL` non è configurata (es. deploy statico su GitHub Pages), `GET /api/listings` restituisce un dataset demo statico per mantenere l’interfaccia funzionante.
+Con `output: "export"` e deploy statico su GitHub Pages, `GET /api/calendar` viene esportato come file statico generico e non può generare feed dinamici per query string diverse: per un feed `.ics` realmente dipendente da database e parametri serve un runtime server.
 
 ## Scraping e sincronizzazione calendari
 
