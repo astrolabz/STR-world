@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { buildListingAvailabilityCalendar } from "@/src/lib/availability/calendar";
 
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   if (!process.env.DATABASE_URL) {
