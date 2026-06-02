@@ -1,6 +1,8 @@
 "use client";
 
+import { animate, utils } from "animejs";
 import { ExternalLink } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 import { Button } from "@/src/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src/components/ui/card";
@@ -20,11 +22,25 @@ interface ListingDetailsSheetProps {
 }
 
 export function ListingDetailsSheet({ listing, open, onOpenChange }: ListingDetailsSheetProps) {
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (listing && open && contentRef.current) {
+      const children = Array.from(contentRef.current.children);
+      animate(children, {
+        opacity: [0, 1],
+        translateX: [24, 0],
+        duration: 350,
+        delay: utils.stagger(80),
+        easing: "easeOutQuart",
+      });
+    }
+  }, [listing, open]);
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         {listing ? (
-          <div className="space-y-4">
+          <div ref={contentRef} className="space-y-4">
             <SheetHeader>
               <SheetTitle>{listing.title}</SheetTitle>
               <SheetDescription>
