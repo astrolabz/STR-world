@@ -1,7 +1,8 @@
 "use client";
 
+import { animate, utils } from "animejs";
 import { ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ListingDetailsSheet } from "@/src/components/listing-details-sheet";
 import { Input } from "@/src/components/ui/input";
@@ -100,6 +101,9 @@ export function ShortTermRentalMap() {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 2000]);
 
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const filtersBodyRef = useRef<HTMLDivElement>(null);
+  const countRef = useRef<HTMLSpanElement>(null);
+  const prevCountRef = useRef(0);
 
   const fetchListings = useCallback(async () => {
     if (!bbox) {
@@ -268,7 +272,39 @@ export function ShortTermRentalMap() {
     }
   }, [listings]);
 
-  const listingCountText = useMemo(() => `${listings.length} ${UI_TEXT.visibleListings}`, [listings.length]);
+  // Animate filter panel children with stagger when panel opens
+  useEffect(() => {
+    if (isFiltersOpen && filtersBodyRef.current) {
+      const children = Array.from(filtersBodyRef.current.children);
+      animate(children, {
+        opacity: [0, 1],
+        translateY: [-8, 0],
+        duration: 280,
+        delay: utils.stagger(50),
+        easing: "easeOutQuad",
+      });
+    }
+  }, [isFiltersOpen]);
+
+  // Animate listing count with a count-up effect when it changes
+  useEffect(() => {
+    if (!countRef.current) return;
+    const from = prevCountRef.current;
+    const to = listings.length;
+    prevCountRef.current = to;
+    if (from === to) return;
+    const counter = { value: from };
+    animate(counter, {
+      value: to,
+      duration: 500,
+      easing: "easeOutQuad",
+      onUpdate: () => {
+        if (countRef.current) {
+          countRef.current.textContent = String(Math.round(counter.value));
+        }
+      },
+    });
+  }, [listings.length]);
 
   return (
     <div className="relative h-[calc(100vh-4rem)] w-full bg-zinc-950">
@@ -279,13 +315,13 @@ export function ShortTermRentalMap() {
         >
           <span className="flex items-center gap-1.5">
             <SlidersHorizontal className="h-4 w-4" />
-            Filtri · {listingCountText}
+            Filtri · <span ref={countRef}>{listings.length}</span> {UI_TEXT.visibleListings}
           </span>
           {isFiltersOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </button>
 
         {isFiltersOpen && (
-          <div className="border-t border-zinc-100 p-3 space-y-3">
+          <div ref={filtersBodyRef} className="border-t border-zinc-100 p-3 space-y-3">
             <Input
               placeholder="Cerca città o paese"
               value={searchText}
