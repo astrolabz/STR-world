@@ -10,6 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/src/components/ui/slider";
 import { ShortTermRentalListing } from "@/src/types/listings";
 
+declare global {
+  interface Window {
+    Cesium?: any;
+    CESIUM_BASE_URL?: string;
+    __NEXT_DATA__?: { assetPrefix?: string };
+  }
+}
+
 interface Bbox {
   minLat: number;
   maxLat: number;
@@ -51,6 +59,7 @@ interface CesiumNamespace {
       baseLayerPicker: boolean;
     },
   ) => CesiumViewer;
+  Ion: { defaultAccessToken: string };
   Cartesian3: { fromDegrees: (longitude: number, latitude: number, height?: number) => unknown };
   Cartesian2: new (x: number, y: number) => unknown;
   Math: { toDegrees: (radians: number) => number };
@@ -125,11 +134,12 @@ export function ShortTermRentalMap() {
       searchParams.append("platform", platform);
     }
 
-    if (searchText.trim()) {
-      searchParams.set("q", searchText.trim());
+    const queryTerm = searchText.trim();
+    if (queryTerm) {
+      searchParams.set("q", queryTerm);
     }
 
-    const nextData = window.__NEXT_DATA__ as { assetPrefix?: string } | undefined;
+    const nextData = window.__NEXT_DATA__;
     const basePath = nextData?.assetPrefix?.replace(/\/$/, "") ?? "";
     const response = await fetch(`${basePath}/api/listings?${searchParams.toString()}`);
 
@@ -171,6 +181,10 @@ export function ShortTermRentalMap() {
       }
 
       const Cesium = window.Cesium as CesiumNamespace;
+      
+      // Imposta il token se presente nelle variabili d'ambiente
+      Cesium.Ion.defaultAccessToken = process.env.NEXT_PUBLIC_CESIUM_ION_TOKEN || "";
+
       const viewer = new Cesium.Viewer(containerRef.current, {
         animation: false,
         timeline: false,
@@ -298,7 +312,7 @@ export function ShortTermRentalMap() {
       value: to,
       duration: 500,
       easing: "easeOutQuad",
-      onUpdate: () => {
+      update: () => {
         if (countRef.current) {
           countRef.current.textContent = String(Math.round(counter.value));
         }

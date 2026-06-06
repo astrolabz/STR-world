@@ -22,16 +22,25 @@ interface OpenDataRecord {
   review_scores_rating?: string;
 }
 
+// Mappa di dataset gratuiti da Inside Airbnb (GitHub/Community)
+const FREE_DATASETS: Record<string, string> = {
+  paris: "https://data.insideairbnb.com/france/ile-de-france/paris/2024-03-16/visualisations/listings.csv",
+  milan: "https://data.insideairbnb.com/italy/lombardy/milan/2024-06-15/visualisations/listings.csv",
+  rome: "https://data.insideairbnb.com/italy/lazio/rome/2024-06-15/visualisations/listings.csv",
+  newyork: "https://data.insideairbnb.com/united-states/ny/new-york-city/2024-05-19/visualisations/listings.csv"
+};
+
 export class OpenDataCityConnector implements ShortTermRentalConnector {
   public readonly name = "OpenDataCityConnector";
 
-  private readonly datasetUrl =
-    process.env.OPEN_DATA_CITY_DATASET_URL ??
-    "https://data.insideairbnb.com/france/ile-de-france/paris/2024-03-16/visualisations/listings.csv";
+  private getDatasetUrl(city?: string): string {
+    const key = city?.toLowerCase().replace(/\s/g, "") ?? "paris";
+    return FREE_DATASETS[key] ?? FREE_DATASETS.paris;
+  }
 
   async fetchListings(params: FetchListingsParams): Promise<RawShortTermRentalListing[]> {
-    void params;
-    const response = await axios.get<string>(this.datasetUrl, {
+    const url = this.getDatasetUrl(params.city);
+    const response = await axios.get<string>(url, {
       responseType: "text",
       timeout: 30000,
     });

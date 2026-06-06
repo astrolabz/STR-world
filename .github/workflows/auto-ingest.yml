@@ -1,0 +1,19 @@
+name: Daily Data Ingestion
+
+on:
+    schedule:
+        - cron: "0 2 * * *" # Esegue ogni notte alle 02:00
+    workflow_dispatch: # Permette l'esecuzione manuale da GitHub
+
+jobs:
+    ingest:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Trigger Ingestion API
+              run: |
+                  curl -X POST "${{ secrets.APP_URL }}/api/cron/ingest" \
+                  -H "Authorization: ${{ secrets.INGESTION_CRON_SECRET }}" \
+                  -f
+              env:
+                  APP_URL: ${{ secrets.APP_URL }}
+                  INGESTION_CRON_SECRET: ${{ secrets.INGESTION_CRON_SECRET }}
